@@ -40,11 +40,11 @@ const char MQTT_USER[] = "je.suarezg1";
 const char MQTT_PASS[] = "202217004";
 const char MQTT_SUB_TOPIC[] = HOSTNAME "/";
 //Tópico al que se enviarán los datos de humedad
-const char MQTT_PUB_TOPIC1[] = "humedad/bogota/" HOSTNAME;
+const char MQTT_PUB_TOPIC1[] = "humedad/chia/" HOSTNAME;
 //Tópico al que se enviarán los datos de temperatura
-const char MQTT_PUB_TOPIC2[] = "temperatura/bogota/" HOSTNAME;
+const char MQTT_PUB_TOPIC2[] = "temperatura/chia/" HOSTNAME;
 //Tópico al que se enviarán los datos de luminosidad
-const char MQTT_PUB_TOPIC3[] = "luminosidad/bogota/" HOSTNAME;
+const char MQTT_PUB_TOPIC3[] = "luminosidad/chia/" HOSTNAME;
 
 //////////////////////////////////////////////////////
 
@@ -95,8 +95,8 @@ int conversion(int raw_val) {
   // Conversion rule
   float Vout = float(raw_val) * (VIN / float(1023));  // Conversion analog to voltage
   float RLDR = (R * (VIN - Vout)) / Vout;             // Conversion voltage to resistance
-  int lux = 500 / (RLDR / 1000);                      // Conversion resitance to lumen
-  return lux;
+  int lumens = 500 / (RLDR / 1000);                      // Conversion resitance to lumen
+  return lumens;
 }
 
 //Configura la conexión del node MCU a Wifi y a Mosquitto
