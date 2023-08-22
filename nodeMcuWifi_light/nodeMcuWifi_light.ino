@@ -4,13 +4,22 @@
 #include <PubSubClient.h>
 #include "DHT.h"
 #define DHTTYPE DHT11 // DHT 11
-
 #define dht_dpin 2
 DHT dht(dht_dpin, DHTTYPE);
-int LDR_Val;     // Analog value from the LDR
-int l;  //Lux value
+
+//Datos para luminosidad
+/* LDR Luximeter */
+// Constants
 #define VIN 3.3  // V power voltage, 3.3v in case of NodeMCU
 #define R 10000  // Voltage devider resistor value
+
+#include "secrets.h"
+
+//Conexión a Wifi
+//Nombre de la red Wifi
+const char ssid[] = "PECHAN";
+//Contraseña de la red Wifi
+const char pass[] = "Carlos123";
 
 #include "secrets.h"
 
@@ -35,6 +44,7 @@ const char MQTT_SUB_TOPIC[] = HOSTNAME "/";
 const char MQTT_PUB_TOPIC1[] = "humedad/chia/" HOSTNAME;
 //Tópico al que se enviarán los datos de temperatura
 const char MQTT_PUB_TOPIC2[] = "temperatura/chia/" HOSTNAME;
+//Tópico al que se enviarán los datos de luminosidad
 const char MQTT_PUB_TOPIC3[] = "luminosidad/chia/" HOSTNAME;
 
 //////////////////////////////////////////////////////
@@ -81,11 +91,20 @@ void receivedCallback(char* topic, byte* payload, unsigned int length) {
     Serial.print((char)payload[i]);
   }
 }
+int conversion(int raw_val) {
+  // Conversion rule
+  float Vout = float(raw_val) * (VIN / float(1023));  // Conversion analog to voltage
+  float RLDR = (R * (VIN - Vout)) / Vout;             // Conversion voltage to resistance
+  int lumens = 500 / (RLDR / 1000);                      // Conversion resitance to lumen
+  return lumens;
+}
 
 //Configura la conexión del node MCU a Wifi y a Mosquitto
 void setup()
 {
   Serial.begin(115200);
+  delay(10);
+
   Serial.println();
   Serial.println();
   Serial.print("Attempting to connect to SSID: ");
@@ -180,7 +199,13 @@ void loop()
   float h = dht.readHumidity();
   float t = dht.readTemperature();
   LDR_Val = analogRead(A0);
-  l = conversion(LDR_Val);
+  Iluminance = conversion(LDR_Val);
+  Serial.print("Analog reading from sensor = ");
+  Serial.println(LDR_Val); // between 0 -
+  Serial.print("Iluminance value = ");
+  Serial.print(Iluminance); // Converted value
+  Serial.println(" Lumens");
+  
   //Transforma la información a la notación JSON para poder enviar los datos 
   //El mensaje que se envía es de la forma {"value": x}, donde x es el valor de temperatura o humedad
   
@@ -192,8 +217,8 @@ void loop()
   json = "{\"value\": "+ String(t) + "}";
   char payload2[json.length()+1];
   json.toCharArray(payload2,json.length()+1);
-
-  json = "{\"value\": "+ String(l) + "}";
+  //JSON para luminosidad
+  json = "{\"value\": "+ String(Iluminance) + "}";
   char payload3[json.length()+1];
   json.toCharArray(payload3,json.length()+1);
 
@@ -203,7 +228,7 @@ void loop()
     client.publish(MQTT_PUB_TOPIC1, payload1, false);
     //Publica en el tópico de la temperatura
     client.publish(MQTT_PUB_TOPIC2, payload2, false);
-
+    //Publica en el tópico de la luminosidad
     client.publish(MQTT_PUB_TOPIC3, payload3, false);
   }
 
@@ -218,12 +243,5 @@ void loop()
   Serial.print(" -> ");
   Serial.println(payload3);
   /*Espera 5 segundos antes de volver a ejecutar la función loop*/
-  delay(1000);
-}
-int conversion(int raw_val) {
-  // Conversion rule
-  float Vout = float(raw_val) * (VIN / float(1023));  // Conversion analog to voltage
-  float RLDR = (R * (VIN - Vout)) / Vout;             // Conversion voltage to resistance
-  int lux = 500 / (RLDR / 1000);                      // Conversion resitance to lumen
-  return lux;
+  delay(5000);
 }
